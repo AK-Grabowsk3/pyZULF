@@ -1,0 +1,24 @@
+# Raising oscillation
+gate1( 1.0, amp*0.6666/3 ) > x
+gate1( skew, amp/3 ) > x
+gate1[T:20]( skew, amp ) > x:y/45
+
+
+# rising field
+line( 10.0, 0.0, 2.0 ) > x
+line( 10.0, 2.0 ) > x
+
+
+# rotational field
+sin[T:4.]( 2.0, 0.5, 4 ) > x
+sin[start:60,T:4.]( 2.0, 0.0, 4 ) > y
+
+
+# decreasing field
+line( 10.0, 2.0 ) > x
+line( 10.0, 2.0, -2.0 ) > x
+line( 10.0 ) > x
+
+
+# test gate from file
+gate_from_file[T:20.](0.2) > x
