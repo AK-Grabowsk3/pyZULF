@@ -2,10 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline, interp1d
 
+
 axis_impulse_sep = "<-"
 modif_sep = ","
 modif_set_chr = ":"
 param_sep = ","
+signal_variable = "signal_base_value"
 
 
 # Class for storing signal shape as a creating stone of gates.
@@ -59,20 +61,24 @@ angle_scaling = np.pi/180
 # outside of its duration or not proper channel. When inside 
 # value is properly calculated. 
 class Impulse:
-    def __init__( self, t_start, duration, channel, gname, param, scale, expr ):
+    def __init__( self, t_start, duration, channel, sname, param, scale, expr ):
         self.t_i = t_start
         self.t_f = t_start + duration
         self.T = duration
         self.ch:int = channel
         self.p = param
-        self.gname:str = gname
-        self.g:Shape = shapes_dict[gname]
+        self.sname = sname
+        self.g:Shape = shapes_dict[sname]
         self.e = expr
         self.s = scale
+        
+        global variables
+
+        mod_func = eval( "lambda " + signal_variable + ": " + signal_variable + " " + expr, variables )
 
         def V_singular( t, ch=0 ):
             if (t > self.t_i) and (t <= self.t_f) and (ch == self.ch):
-                return self.g.get_curve( ( t - t_start )/duration, param )*self.s
+                return mod_func( self.g.get_curve( ( t - t_start )/duration, param ) )*self.s
             else:
                 return 0.0
         
@@ -90,6 +96,7 @@ def load_parameters( new_variables = None, new_shapes = None, new_channels = Non
 
     if not(new_variables is None):
         variables.update( new_variables )
+
     if not(new_field_scaling is None):
         field_scaling.update( new_field_scaling )
     if not(new_shapes is None):
@@ -227,11 +234,6 @@ def decompose_command( line ):
     
 
     modifier_expr = command_txt.strip()
-    global variables
-
-    for par, val in variables.items():
-        modifier_expr = modifier_expr.replace( par, str( val ) )
-    modifier_expr = "x" + modifier_expr
 
     return axis, sname.strip(), param, dict(modif), modifier_expr
 
@@ -239,12 +241,9 @@ def decompose_command( line ):
 # and evaluates final value of expression
 def read_param( expression:str ):
     global variables
-
-    for par, val in variables.items():
-        expression = expression.replace( par, str( val ) )
     
     try:
-        out = eval(expression)
+        out = eval(expression, variables)
     except:
         raise Exception( 
             "Unrecognized variable or expression found in file, could not match "+ 
@@ -414,7 +413,7 @@ def draw_instructions( impulses:list[Impulse], signals ):
 
     for impulse in impulses:
 
-        label = impulse.gname + ("\n" + ", ".join( [f"{p:.2f}" for p in impulse.p] ) if not( impulse.p is None) else "")
+        label = impulse.sname + ("\n" + ", ".join( [f"{p:.2f}" for p in impulse.p] ) if not( impulse.p is None) else "")
 
         x_pos = impulse.t_i + impulse.T/2
         dist = np.abs(np.array(seq)-x_pos)

@@ -21,4 +21,4 @@ x <- [T:10] line
 
 
 # test gate from file
-x <- [T:20.] gate_from_file(0.2)
+x <- [T:20.] gate_from_file(0.2) * 2
