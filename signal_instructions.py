@@ -2,6 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline, interp1d
 
+axis_impulse_sep = "<-"
+modif_sep = ","
+modif_set_chr = ":"
+param_sep = ","
+
+
 # Class for storing signal shape as a creating stone of gates.
 # Also used as general curve shape for experiment setup like guiding 
 # field shape etc.
@@ -24,22 +30,22 @@ class Shape:
             return self.V(x, *par)
 
 # dictionary for predefined shapes
-gates:dict[str:Shape] = {
+shapes_dict:dict[str:Shape] = {
 	"sin": Shape( 
     lambda x, A=1.0, phi=0.0, N_cycl=1.0: A*np.sin( N_cycl * x * 2 * np.pi + phi*np.pi ), 
 ),
 	"line": Shape(
-    lambda x, T=1.0, V=0.0, dV=0.0: V+dV*x,
-    duration_f = lambda T=1.0, V=0.0, dV=0.0: T 
+    lambda x, V=0.0, dV=0.0: V+dV*x,
 ),
 	"exp": Shape( 
     lambda x, dx=1.0, V=0.0, dV=0.0: V + dV * ( 1 - np.exp(x/dx) ) / ( 1 - np.exp(1/dx) ),
 )
 }
+
 # dictionary for numbering axis
 channels:dict[str,int] = {}
 # dictionary with custom variables
-variables:dict[str,float] = {}
+variables:dict[str,float] = {"get_current_time()": 0.0}
 # dictionary with coil calibration
 field_scaling:dict[str,float] = {}
 
@@ -53,44 +59,48 @@ angle_scaling = np.pi/180
 # outside of its duration or not proper channel. When inside 
 # value is properly calculated. 
 class Impulse:
-    def __init__( self, t_start, duration, channel, gname, param, scale ):
+    def __init__( self, t_start, duration, channel, gname, param, scale, expr ):
         self.t_i = t_start
         self.t_f = t_start + duration
         self.T = duration
         self.ch:int = channel
         self.p = param
         self.gname:str = gname
-        self.g:Shape = gates[gname]
+        self.g:Shape = shapes_dict[gname]
+        self.e = expr
+        self.s = scale
 
         def V_singular( t, ch=0 ):
             if (t > self.t_i) and (t <= self.t_f) and (ch == self.ch):
-                return self.g.get_curve( ( t - t_start )/duration, param )*scale
+                return self.g.get_curve( ( t - t_start )/duration, param )*self.s
             else:
                 return 0.0
-        self.V = V_singular
+        
+        self.V = np.vectorize( V_singular, excluded=[1] )
+
     def __call__( self, t, ch ):
-        return np.vectorize( self.V, excluded=[1] )(t,ch)
+        return self.V(t,ch)
 
 # function to set global parameters, since they don't easily transfer file to file
-def load_parameters( new_variables = None, new_gates = None, new_channels = None, new_field_scaling=None ):
+def load_parameters( new_variables = None, new_shapes = None, new_channels = None, new_field_scaling=None ):
     global variables
     global channels
-    global gates
+    global shapes_dict
     global field_scaling
 
     if not(new_variables is None):
         variables.update( new_variables )
     if not(new_field_scaling is None):
         field_scaling.update( new_field_scaling )
-    if not(new_gates is None):
-        gates.update( new_gates )
+    if not(new_shapes is None):
+        shapes_dict.update( new_shapes )
     if not(new_channels is None):
         channels.update( new_channels )
 
     pass
 
 # Allows to read file with two columns, time and field/voltage, to 
-# create gate element representing it. It uses CubicSpline function
+# create shape element representing it. It uses CubicSpline function
 # from scipy to obtain interpolation based on data from file. By 
 # default boundary condition is set to "natural", meaning at the 
 # edges second derivative is set to 0. 
@@ -108,7 +118,7 @@ def shape_from_file_cubic( fname, boundary_condition = "natural" ):
     return Shape( curve = func, duration = duration )
 
 # Allows to read file with two columns, time and field/voltage, to 
-# create gate element representing it. It uses interp1 function
+# create shape element representing it. It uses interp1 function
 # from scipy to obtain interpolation based on data from file. By 
 # default kind of interpolation is set to "linear". For more 
 # information go to scipy.interpolate.interp1 documentation.
@@ -146,47 +156,84 @@ def get_commands( instructions_txt ):
 
 # decompose_command(line) splits command given as 
 # string "line" variable into four parts:
-# - gate name
+# - shape name
 # - general modifiers from square brackets
-# - gate specific parameters from normal brackets
+# - shape specific parameters from normal brackets
 # - axis indicator from right side of ">" symbol
 # It does not converted variables to values.
 def decompose_command( line ):
 
-    m = line.find( '>' )
-    if m < 0:
-        gstring = line.strip()
-        axis = ""
-    else:
-        gstring = line[:m].strip()
-        axis = line[m+1:].strip() 
+    m = line.find( axis_impulse_sep )
 
-    beg = gstring.find("(")
-    end = gstring.find(")")
-    if ( beg > 0 ) and ( end > 0 ):
+    command_txt = line[m+len(axis_impulse_sep):].strip()
+    axis = line[:m].strip() 
 
-        gname = gstring[:beg]
-
-        elements = gstring[beg+1:end].split( sep = ',' )
-        param = [ read_param(el) for el in elements]
-
-    else:
-        gname = gstring
-        param = None
-
+    # find square 
     modif = []
 
-    beg = gname.find("[")
-    end = gname.find("]")
+    beg = command_txt.find("[")
+    end = command_txt.find("]")
     if ( beg >= 0 ) and ( end > 0 ):
         
-        elements = gname[beg+1:end].split( sep = ',' )
-        elements = [ el.split( sep = ":" ) for el in elements ]
+        elements = command_txt[beg+len(modif_sep):end].split( sep = modif_sep )
+        elements = [ el.split( sep = modif_set_chr ) for el in elements ]
         modif = [ ( el[0].strip(), read_param(el[1]) ) for el in elements ]
 
-        gname = gname[:beg].strip()
+        command_txt = command_txt[end+1:]
+    
+    elif (end <= 0)^(beg < 0) :
+        raise Exception( f"Square brackets not closed in line:\n\t{line}" )
+    
+    for sh_name in sorted(shapes_dict.keys(), key=lambda x: len(x), reverse=True):
+        sh_name_loc = command_txt.find(sh_name)
+        
+        if sh_name_loc >= 0:
+            sname = sh_name
+            break
+    
+    if sh_name_loc < 0:
+        raise Exception( f"In line: \n{line}\n could not find any existing shape names." )
 
-    return axis, gname.strip(), param, dict(modif)
+    command_txt = command_txt[ sh_name_loc + len(sname) :]
+
+    beg = command_txt.find("(")
+    
+    end = -1 #command_txt.find(")")
+    
+    opened_br = 1
+
+    for curr in range(beg+1, len(command_txt)):
+
+        if command_txt[curr] == "(":
+            opened_br += 1
+        if command_txt[curr] == ")":
+            opened_br -= 1
+
+        if opened_br == 0:
+            end = curr
+            break
+    
+    param = None
+
+    if ( beg >= 0 ) and ( end > 0 ):
+
+        elements = command_txt[beg+len(param_sep):end].split( sep = param_sep )
+        param = [ read_param(el) for el in elements ]
+
+        command_txt = command_txt[ end+1: ]
+
+    elif (end <= 0)^(beg < 0) :
+        raise Exception( f"Parameter brackets not closed in line:\n\t{line}" )
+    
+
+    modifier_expr = command_txt.strip()
+    global variables
+
+    for par, val in variables.items():
+        modifier_expr = modifier_expr.replace( par, str( val ) )
+    modifier_expr = "x" + modifier_expr
+
+    return axis, sname.strip(), param, dict(modif), modifier_expr
 
 # Replaces all variable instance with their values
 # and evaluates final value of expression
@@ -238,6 +285,7 @@ def read_axis( axis:str ):
 # and transforms them into "impulse" elements, which are then 
 # gathered in single list. This is functions output
 def gather_impulses( instructions ):
+    global variables
 
     impulses = []
     t_current = 0.0
@@ -245,24 +293,23 @@ def gather_impulses( instructions ):
 
     for command in instructions:
 
-        axis, gname, param, modif = decompose_command( command )
+        variables["get_current_time()"] = t_current
 
-        gate = gates[ gname ]
+        axis, gname, param, modif, modif_expr = decompose_command( command )
+
+        new_shape = shapes_dict[ gname ]
 
         if "T" in modif.keys():
             duration = modif["T"]
         else:
-            duration = gate.get_duration( param )
+            duration = new_shape.get_duration( param )
 
-        if "start" in modif.keys():
-            t_start = modif["start"]
+        if "Tstart" in modif.keys():
+            t_start = modif["Tstart"]
+            t_current = t_start + duration
         else:
             t_start = t_current
             t_current += duration
-
-        yscaling = 1.
-        if "scale_y" in modif.keys():
-            yscaling *= modif.keys("scale_y")
 
         chan, rotation = read_axis( axis )
 
@@ -274,7 +321,8 @@ def gather_impulses( instructions ):
                     ch, 
                     gname, 
                     param, 
-                    scale = rot_scaling * yscaling  
+                    scale = rot_scaling,
+                    expr = modif_expr
                 ) 
             )
 

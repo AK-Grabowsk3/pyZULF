@@ -1,24 +1,24 @@
 # Raising oscillation
-gate1( 1.0, amp*0.6666/3 ) > x
-gate1( skew, amp/3 ) > x
-gate1[T:20]( skew, amp ) > x:y/45
+x <- sin_strange( 1.0, amp*0.6666/3 )
+x <- sin_strange( skew, amp/3 )
+x:y/45 <- [T:20] sin_strange( skew, amp ) 
 
 
 # rising field
-line( 10.0, 0.0, 2.0 ) > x
-line( 10.0, 2.0 ) > x
+x <- [T:10] line( 0.0, 2.0 )
+x <- [T:10] line( 2.0 )
 
 
 # rotational field
-sin[T:4.]( 2.0, 0.5, 4 ) > x
-sin[start:60,T:4.]( 2.0, 0.0, 4 ) > y
+x <- [T:4.] sin( 2.0, 0.5, 4 )
+y <- [Tstart:60,T:4.] sin( 2.0, 0.0, 4 ) 
 
 
 # decreasing field
-line( 10.0, 2.0 ) > x
-line( 10.0, 2.0, -2.0 ) > x
-line( 10.0 ) > x
+x <- [T:10] line( 2.0 )
+x <- [T:10] line( 2.0, -2.0 )
+x <- [T:10] line
 
 
 # test gate from file
-gate_from_file[T:20.](0.2) > x
+x <- [T:20.] gate_from_file(0.2)

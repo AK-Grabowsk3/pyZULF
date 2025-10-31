@@ -8,7 +8,7 @@ import signal_instructions as si
 
 path_to_pyZULF = ""#"C:\\Users\\ZULF laptop\\Desktop\\ZUL SOFTWARE\\ZULF QSE 2025\\pyZULF\\"
 
-gates = {}
+shapes = {}
 
 channels = {
     "x": 0,
@@ -30,7 +30,7 @@ calibration = {
     "pz": 1.,
 }
 
-si.load_parameters( new_gates = gates, new_channels = channels, new_field_scaling=calibration )
+si.load_parameters( new_shapes = shapes, new_channels = channels, new_field_scaling=calibration )
 
 def labview_impulse_interface( input_variables, device_list, instructions_txt, dt = 0.01 ):
 
