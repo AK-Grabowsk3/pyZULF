@@ -8,17 +8,23 @@ x:y/45 <- [T:20] sin_strange( skew, amp )
 x <- [T:10] line( 0.0, 2.0 )
 x <- [T:10] line( 2.0 )
 
+t_rot := current_time
 
 # rotational field
 x <- [T:4.] sin( 2.0, 0.5, 4 )
 y <- [Tstart:60,T:4.] sin( 2.0, 0.0, 4 ) 
 
+T_rot := current_time - t_rot
 
 # decreasing field
 x <- [T:10] line( 2.0 )
 x <- [T:10] line( 2.0, -2.0 )
 x <- [T:10] line
 
+end := current_time
+
+x <- [Tstart:t_rot, T:T_rot] gate_from_file/5
+x <- [Tstart:t_rot, T:T_rot] gate_from_file/5
 
 # test gate from file
-x <- [T:20.] gate_from_file(0.2) * 2
+x <- [T:20.,Tstart:end] gate_from_file * 2/5

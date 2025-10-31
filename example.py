@@ -2,7 +2,7 @@ import numpy as np
 import signal_instructions as si
 import pyZULF
 
-example_gates = {
+example_shapes = {
     "sin_strange": si.Shape( 
     lambda x, a=0.0, b=1.0: b * ( np.sin( np.pi * x ) - a * np.sin( np.pi * x * 2 ) / 2.0 ) / (1+np.abs(a)/2),
     duration = 10.0 
@@ -10,7 +10,7 @@ example_gates = {
     "gate_from_file": si.shape_from_file( pyZULF.path_to_pyZULF + "example/dane.dat" )
 }
 
-si.load_parameters( new_shapes=example_gates )
+si.load_parameters( new_shapes=example_shapes )
 
 if __name__ == "__main__":
 

@@ -4,6 +4,7 @@ from scipy.interpolate import CubicSpline, interp1d
 
 
 axis_impulse_sep = "<-"
+variable_ovewrite_chr = ":="
 modif_sep = ","
 modif_set_chr = ":"
 param_sep = ","
@@ -47,7 +48,7 @@ shapes_dict:dict[str:Shape] = {
 # dictionary for numbering axis
 channels:dict[str,int] = {}
 # dictionary with custom variables
-variables:dict[str,float] = {"get_current_time()": 0.0}
+variables:dict[str,float] = {}
 # dictionary with coil calibration
 field_scaling:dict[str,float] = {}
 
@@ -74,7 +75,9 @@ class Impulse:
         
         global variables
 
-        mod_func = eval( "lambda " + signal_variable + ": " + signal_variable + " " + expr, variables )
+        temp_dict = {}
+        temp_dict.update(variables)
+        mod_func = eval( "lambda " + signal_variable + ": " + signal_variable + " " + expr, temp_dict )
 
         def V_singular( t, ch=0 ):
             if (t > self.t_i) and (t <= self.t_f) and (ch == self.ch):
@@ -96,7 +99,6 @@ def load_parameters( new_variables = None, new_shapes = None, new_channels = Non
 
     if not(new_variables is None):
         variables.update( new_variables )
-
     if not(new_field_scaling is None):
         field_scaling.update( new_field_scaling )
     if not(new_shapes is None):
@@ -120,7 +122,7 @@ def shape_from_file_cubic( fname, boundary_condition = "natural" ):
     time = time - time[0]
     duration = time[-1]
 
-    func = lambda x, s=1.0: CubicSpline( time/duration, signal, bc_type=boundary_condition )(x)*s
+    func = CubicSpline( time/duration, signal, bc_type=boundary_condition )
 
     return Shape( curve = func, duration = duration )
 
@@ -138,7 +140,7 @@ def shape_from_file( fname, interp_type = "linear" ):
     time = time - time[0]
     duration = time[-1]
 
-    func = lambda x, s=1.0: interp1d( time/duration, signal, kind = interp_type )(x)*s
+    func = interp1d( time/duration, signal, kind = interp_type )
 
     return Shape( curve = func, duration = duration )
 
@@ -161,14 +163,14 @@ def get_commands( instructions_txt ):
 
     return commands
 
-# decompose_command(line) splits command given as 
-# string "line" variable into four parts:
+# decompose_shape_command(line) splits command 
+# given as string "line" variable into four parts:
 # - shape name
 # - general modifiers from square brackets
 # - shape specific parameters from normal brackets
 # - axis indicator from right side of ">" symbol
 # It does not converted variables to values.
-def decompose_command( line ):
+def decompose_shape_command( line ):
 
     m = line.find( axis_impulse_sep )
 
@@ -237,13 +239,27 @@ def decompose_command( line ):
 
     return axis, sname.strip(), param, dict(modif), modifier_expr
 
+# changes adequate variable in dictionary
+def overwrite_variable( line ):
+    global variables
+
+    m = line.find( variable_ovewrite_chr )
+    
+    var_name = line[:m].strip()
+    expr = line[m+len(variable_ovewrite_chr):]
+
+    variables.update( {var_name:read_param(expr)} )
+
 # Replaces all variable instance with their values
 # and evaluates final value of expression
 def read_param( expression:str ):
     global variables
     
+    temp_dict = {}
+    temp_dict.update(variables)
+
     try:
-        out = eval(expression, variables)
+        out = eval(expression, temp_dict)
     except:
         raise Exception( 
             "Unrecognized variable or expression found in file, could not match "+ 
@@ -292,41 +308,45 @@ def gather_impulses( instructions ):
 
     for command in instructions:
 
-        variables["get_current_time()"] = t_current
+        variables.update( {"current_time":t_current} )
 
-        axis, gname, param, modif, modif_expr = decompose_command( command )
+        if variable_ovewrite_chr in command:
+            overwrite_variable( command )
 
-        new_shape = shapes_dict[ gname ]
+        if axis_impulse_sep in command:
 
-        if "T" in modif.keys():
-            duration = modif["T"]
-        else:
+            axis, gname, param, modif, modif_expr = decompose_shape_command( command )
+
+            new_shape = shapes_dict[ gname ]
+
+            t_start = t_current
             duration = new_shape.get_duration( param )
 
-        if "Tstart" in modif.keys():
-            t_start = modif["Tstart"]
+            if "T" in modif.keys():
+                duration = modif["T"]
+                
+            if "Tstart" in modif.keys():
+                t_start = modif["Tstart"]
+            
             t_current = t_start + duration
-        else:
-            t_start = t_current
-            t_current += duration
 
-        chan, rotation = read_axis( axis )
+            chan, rotation = read_axis( axis )
 
-        for ch, rot_scaling in zip( chan, rotation ):
-            impulses.append( 
-                Impulse( 
-                    t_start, 
-                    duration, 
-                    ch, 
-                    gname, 
-                    param, 
-                    scale = rot_scaling,
-                    expr = modif_expr
-                ) 
-            )
+            for ch, rot_scaling in zip( chan, rotation ):
+                impulses.append( 
+                    Impulse( 
+                        t_start, 
+                        duration, 
+                        ch, 
+                        gname, 
+                        param, 
+                        scale = rot_scaling,
+                        expr = modif_expr
+                    ) 
+                )
 
 
-        total_dur = max( t_current, t_start + duration, total_dur )
+            total_dur = max( t_current, t_start + duration, total_dur )
 
     return impulses, total_dur
 
