@@ -36,7 +36,7 @@ def labview_impulse_interface( input_variables, device_list, instructions_txt, d
 
     si.load_parameters( new_variables = dict( input_variables ) )
 
-    commands = si.get_commands( instructions_txt )
+    commands = si.get_commands_from_instructions( instructions_txt )
     impulses, total_duration = si.gather_impulses( commands )
 
     err = ""
@@ -54,7 +54,7 @@ def labview_impulse_interface( input_variables, device_list, instructions_txt, d
         dev_address = device[0]
         dev_ch = device[1]
         
-        # Dev = rm.open_resource( dev_address )
+        Dev = rm.open_resource( dev_address )
 
         if len(schedule) > 0:
 
@@ -64,8 +64,8 @@ def labview_impulse_interface( input_variables, device_list, instructions_txt, d
             t = t_start + np.arange( 1, int(duration/dt) + 1 )*dt
             V = si.calculate_final_voltages( impulses, t, channel )
 
-            # V = gen.send_to_RigolDG( Dev, V, ch=dev_ch, sampl=1e0/dt )
-            # err += f", {dev_address}, {dev_ch}, received {len(t)} points, " + gen.Rigol_read_full_error( Dev )
+            V = gen.send_to_RigolDG( Dev, V, ch=dev_ch, sampl=1e0/dt )
+            err += f", {dev_address}, {dev_ch}, received {len(t)} points, " + gen.Rigol_read_full_error( Dev )
 
             V = np.insert( V, [0,0], [0.0,0.0] )
             t = np.insert( t, [0,0], [t[0]-dt,t[0]] )
@@ -73,12 +73,12 @@ def labview_impulse_interface( input_variables, device_list, instructions_txt, d
 
 
         else:
-            # Dev.write(f":OUTP{dev_ch} OFF")
+            Dev.write(f":OUTP{dev_ch} OFF")
 
             t = np.array([0.0,total_duration])
             V = np.array([0.0,0.0])
 
-        # Dev.close()
+        Dev.close()
 
         schedule_list.append( np.array(schedule*1e6,dtype = int) )
         signal_list.append( V )
