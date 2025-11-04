@@ -53,16 +53,20 @@ class Shape:
 
 # dictionary for predefined shapes
 shapes_dict:dict[str:Shape] = {
-	"sin": Shape(    lambda x, A=1.0, phi=0.0, N_cycl=1.0: A*np.sin( N_cycl * x * 2 * np.pi + phi*np.pi ),
+	"sin": Shape( 
+    lambda x, A=1.0, phi=0.0, N_cycl=1.0: A*np.sin( N_cycl * x * 2 * np.pi + phi*np.pi ),
 ),
 	"line": Shape(
-    lambda x, V0=0.0, V1=0.0: V0+(V1-V0)*x,
+    lambda x, V0, V1: V0+(V1-V0)*x,
 ),
 	"poly": Shape(
     lambda x, *par: np.polyval( np.flip(par), x )
 ),
-	"exp": Shape(
-    lambda x, dx=1.0, V=0.0, dV=0.0: V + dV * ( 1 - np.exp(x/dx) ) / ( 1 - np.exp(1/dx) ),
+	"poly_zeros": Shape(
+    lambda x, *zeros: np.polyval( np.poly(zeros), x ) 
+),
+	"join_exp": Shape(
+    lambda x, lam, V0, V1: V0 + (V1 - V0) * ( np.exp(x*lam) - 1 ) / ( np.exp(lam) - 1 )
 )
 }
 
