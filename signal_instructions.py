@@ -23,6 +23,10 @@ param_rbracket = ")"
 impulse_duration_mod = "T"
 impulse_start_time_mod = "Tstart"
 
+comment_line_chr = "#"
+comment_start_chr = '"""'
+comment_end_chr = '"""'
+
 class Shape:
     """
     Class for storing signal shape as a set of possible shapes 
@@ -54,7 +58,7 @@ class Shape:
 # dictionary for predefined shapes
 shapes_dict:dict[str:Shape] = {
 	"sin": Shape( 
-    lambda x, A=1.0, phi=0.0, N_cycl=1.0: A*np.sin( N_cycl * x * 2 * np.pi + phi ),
+    lambda x, N_cycl=1.0, phi=0.0: np.sin( N_cycl * x * 2 * np.pi + phi ),
 ),
 	"line": Shape(
     lambda x, V0, V1: V0+(V1-V0)*x,
@@ -196,11 +200,20 @@ def get_commands_from_instructions( instructions_txt:str ) -> list[str]:
     and cleans it from comments (text after "#" character) and
     omits empty lines
     """
+    comment_start = instructions_txt.find( comment_start_chr )
+    while comment_start >= 0:
+        comment_end = instructions_txt.find( comment_end_chr, comment_start + len(comment_start_chr) )
+
+        if comment_end < 0:
+            comment_end = len(instructions_txt)
+
+        instructions_txt = instructions_txt[:comment_start] + instructions_txt[comment_end+len(comment_end_chr):]
+        comment_start = instructions_txt.find( comment_start_chr )
 
     lines = instructions_txt.splitlines()
     commands = []
     for line in lines:
-        end = line.find("#")
+        end = line.find( comment_line_chr )
         if end >= 0:
             command = line[:end].strip()
         else:

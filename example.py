@@ -3,7 +3,7 @@ import signal_instructions as si
 
 example_shapes = {
     "sin_strange": si.Shape( 
-    lambda x, a=0.0, b=1.0: b * ( np.sin( np.pi * x ) - a * np.sin( np.pi * x * 2 ) / 2.0 ) / (1+np.abs(a)/2),
+    lambda x, a=0.0: ( np.sin( np.pi * x ) - a * np.sin( np.pi * x * 2 ) / 2.0 ) / (1+np.abs(a)/2),
     duration = 10.0 
 ),
     "gate_from_file": si.shape_from_file( "example/dane.dat" )
