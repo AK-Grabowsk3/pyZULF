@@ -56,7 +56,7 @@ shapes_dict:dict[str:Shape] = {
 	"sin": Shape(    lambda x, A=1.0, phi=0.0, N_cycl=1.0: A*np.sin( N_cycl * x * 2 * np.pi + phi*np.pi ),
 ),
 	"line": Shape(
-    lambda x, V=0.0, dV=0.0: V+dV*x,
+    lambda x, V0=0.0, V1=0.0: V0+(V1-V0)*x,
 ),
 	"poly": Shape(
     lambda x, *par: np.polyval( np.flip(par), x )
@@ -373,7 +373,7 @@ def gather_impulses( instructions:list[str] ) -> tuple[list[Impulse], float]:
     for command in instructions:
 
         variables.update( { "current_time": lambda:t_current,
-                            "total_length": lambda:total_dur } )
+                            "end_time": lambda:total_dur } )
 
         if variable_ovewrite_chr in command:
             overwrite_variable( command )

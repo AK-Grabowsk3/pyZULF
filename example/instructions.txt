@@ -18,15 +18,11 @@ T_rot := current_time() - t_rot
 
 # decreasing field
 x <- [T = 10] 2
-x <- [T = 10] line( 2.0, -2.0 )
+x <- [T = 10] line( 2.0, 0.0 )
 x <- [T = 10] 0
-
-end := current_time()
 
 x <- [Tstart = t_rot, T = T_rot] 0.2 * gate_from_file
 y <- [Tstart = t_rot, T = T_rot] gate_from_file / 5
 
-
-f := lambda x: x**2
 # test gate from file
-x <- [T = 20.,Tstart = end] 2 * gate_from_file / 5
+x <- [Tstart = end_time()] 2 * gate_from_file / 5
