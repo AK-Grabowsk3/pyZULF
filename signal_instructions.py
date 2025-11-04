@@ -256,7 +256,7 @@ def decompose_shape_command( line:str ) -> tuple[str,str,list[str],dict[str,floa
     # in case no shape was given program assumes 
     # it to be constant signal of value given.
     if shape_loc < 0:
-        return axis, "line", [ read_param( command_txt ) ], dict(modif), lambda x: x
+        return axis, "line", [ read_param( command_txt ) ]*2, dict(modif), lambda x: x
 
 
     # checking if there are parameter brackets for shape
