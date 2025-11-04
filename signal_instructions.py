@@ -321,9 +321,11 @@ def read_param( expression:str ):
     """Evaluates expression with predefined variables using eval function. 
     Used where real number is expected."""
     global variables
+    global constants
 
     temp_dict = {}
     temp_dict.update(variables)
+    temp_dict.update(constants)
 
     try:
         out = eval(expression, temp_dict)

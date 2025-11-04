@@ -11,7 +11,7 @@ x <- [T = 10] 2
 t_rot := current_time()
 
 # rotational field
-x <- [T = 4.] sin( 2.0, 0.5, 4 )
+x <- [T = 4.] sin( 2.0, 0.5*pi, 4 )
 y <- [Tstart = 60,T = 4.] sin( 2.0, 0.0, 4 ) 
 
 T_rot := current_time() - t_rot
