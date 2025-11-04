@@ -54,7 +54,7 @@ class Shape:
 # dictionary for predefined shapes
 shapes_dict:dict[str:Shape] = {
 	"sin": Shape( 
-    lambda x, A=1.0, phi=0.0, N_cycl=1.0: A*np.sin( N_cycl * x * 2 * np.pi + phi*np.pi ),
+    lambda x, A=1.0, phi=0.0, N_cycl=1.0: A*np.sin( N_cycl * x * 2 * np.pi + phi ),
 ),
 	"line": Shape(
     lambda x, V0, V1: V0+(V1-V0)*x,
@@ -74,6 +74,8 @@ shapes_dict:dict[str:Shape] = {
 channels:dict[str,int] = {}
 # dictionary with custom variables
 variables:dict[str,float] = {}
+# dictionary with constants, cannot be changed in pseudocode
+constants:dict[str,float] = {"pi": np.pi, "e": np.e}
 # dictionary with coil calibration
 field_scaling:dict[str,float] = {}
 
