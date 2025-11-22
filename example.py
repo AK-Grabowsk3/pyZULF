@@ -35,17 +35,13 @@ if __name__ == "__main__":
     commands = si.get_commands_from_instructions( instr )
     impulses, total_duration = si.gather_impulses( commands )
 
-    signal_list = []
-    time_list = []
+    signals = []
 
-    for ch in [0,1]:
+    for ch in ["x","y"]:
 
         schedule = si.get_gate_schedule( impulses, ch )
         if len(schedule) == 0:
-            
-            signal_list.append( [0,0] )
-            time_list.append( [0,total_duration] )
-
+            signals.append( ([0,0],[0,total_duration]) )
             continue
 
         t_start = schedule[0]
@@ -53,14 +49,7 @@ if __name__ == "__main__":
 
         t = t_start + np.arange( 1, int(duration/dt) + 1 )*dt
         V = si.calculate_final_voltages( impulses, t, ch )
-
-        V = np.insert( V, [0,0], [0.0,0.0] )
-        t = np.insert( t, [0,0], [t[0]-dt,t[0]] )
-        t[2] += 500e-12
         
-        signal_list.append( V )
-        time_list.append( t )
-
-    signals = list( zip(time_list, signal_list) )
+        signals.append( (t,V) )
     
     si.draw_instructions( impulses, signals )
