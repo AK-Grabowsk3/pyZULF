@@ -50,6 +50,8 @@ def send_to_RigolDG( Rig, V, ch = 1, sampl=1e3 ):
         # 14 bit precision
         max_val = (1<<14) - 1
 
+        idle_level = np.uint64( 0.5 * max_val )
+
         # linear map from [-1,1] to {0,...,16383}:
         Vd = np.array( ( Vnorm + 1 ) / 2 * max_val, dtype = np.uint16 )
         
@@ -62,6 +64,8 @@ def send_to_RigolDG( Rig, V, ch = 1, sampl=1e3 ):
     elif dev_name in ["DG952", "DG972", "DG992"]:
         # 16 bit precision
         max_val = (1<<16) - 1
+        
+        idle_level = np.uint64( max_val )
 
         # first mapping ]-1,0[ to ]0,1[ and [0,1] to [-1,0]:
         Vnorm -= np.where( Vnorm >= 0.0, 1., -1.00004 )
@@ -83,6 +87,8 @@ def send_to_RigolDG( Rig, V, ch = 1, sampl=1e3 ):
     Rig.write(f":SOUR{ch}:BURS ON")
     Rig.write(f":SOUR{ch}:BURS:MODE TRIG")
     Rig.write(f":SOUR{ch}:BURS:TRIG:SOUR EXT")
+
+    Rig.write(f":SOUR{ch}:BURS:IDLE {idle_level}")
     time.sleep(delay)
 
     # Set output for arbitrary waveform loaded in volatile memory, max sample rate
