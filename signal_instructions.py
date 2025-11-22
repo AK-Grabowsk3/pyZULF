@@ -56,7 +56,7 @@ class Shape:
             return self.V(x, *par)
 
 # dictionary for predefined shapes
-shapes_dict:dict[str:Shape] = {
+shapes_dict:dict = {
 	"sin": Shape( 
     lambda x, N_cycl=1.0, phi=0.0: np.sin( N_cycl * x * 2 * np.pi + phi ),
 ),
@@ -75,13 +75,13 @@ shapes_dict:dict[str:Shape] = {
 }
 
 # dictionary for numbering axis
-channels:dict[str,int] = {}
+channels:dict = {}
 # dictionary with custom variables
-variables:dict[str,float] = {}
+variables:dict = {}
 # dictionary with constants, cannot be changed in pseudocode
-constants:dict[str,float] = {"pi": np.pi, "e": np.e}
+constants:dict = {"pi": np.pi, "e": np.e}
 # dictionary with coil calibration
-field_scaling:dict[str,float] = {}
+field_scaling:dict = {}
 
 # scaling factor to use proper angle unit.
 # 1 for radians, pi/180 for degrees
@@ -194,7 +194,7 @@ def shape_from_file( fname: str, interp_type: str = "linear" ) -> Shape:
 
     return Shape( curve = func, duration = duration )
 
-def get_commands_from_instructions( instructions_txt:str ) -> list[str]:
+def get_commands_from_instructions( instructions_txt:str ) -> list:
     """
     Reads string "instructions_txt" with raw instruction lines
     and cleans it from comments (text after "#" character) and
@@ -224,7 +224,7 @@ def get_commands_from_instructions( instructions_txt:str ) -> list[str]:
 
     return commands
 
-def decompose_shape_command( line:str ) -> tuple[str,str,list[str],dict[str,float],str] :
+def decompose_shape_command( line:str ):
     """
     decompose_shape_command(line) splits command
     given as string "line" variable into four parts:
@@ -351,7 +351,7 @@ def read_param( expression:str ):
 
     return out
 
-def read_axis( axis:str ) -> tuple[list[str],list[float]]:
+def read_axis( axis:str ):
     """Based on coded axis calculates eventual rotation
     scaling factors if given."""
     global channels
@@ -378,14 +378,14 @@ def read_axis( axis:str ) -> tuple[list[str],list[float]]:
 
     return ch, scale
 
-def gather_impulses( instructions:list[str] ) -> tuple[list[Impulse], float]:
-    """ Main pseudocode interpreter
+def gather_impulses( instructions:list ):
+    """ Main pseudocode interpreter.
     Reads proper instructions using "decompose_shape_command" 
     function and transforms them into "Impulse" elements, which 
     are then gathered in single list and outputted. Additionally 
     on output there is total signal duration.
     """
-    global variables
+    global constants
 
     impulses = []
     t_current = 0.0
@@ -393,7 +393,7 @@ def gather_impulses( instructions:list[str] ) -> tuple[list[Impulse], float]:
 
     for command in instructions:
 
-        variables.update( { "current_time": lambda:t_current,
+        constants.update( { "current_time": lambda:t_current,
                             "end_time": lambda:total_dur } )
 
         if variable_ovewrite_chr in command:
@@ -501,7 +501,7 @@ def get_gate_schedule( impulses, ch=0 ):
 
     return np.array( t_fin )
 
-def draw_instructions( impulses:list[Impulse], signals ):
+def draw_instructions( impulses:list, signals ):
     """Visualizes signal with additional names of shapes."""
     Vmax = 0.
     colors = []

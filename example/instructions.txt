@@ -3,7 +3,6 @@ x <- sin_strange( 1.0 ) * amp*0.6666/3
 x <- sin_strange( skew ) * amp/3
 x:y/10 <- [T = 20] sin_strange( skew ) * amp 
 
-
 # rising field
 x <- [T = 10] line( 0.0, 2.0 )
 x <- [T = 10] 2
@@ -26,5 +25,3 @@ y <- [Tstart = t_rot, T = T_rot] gate_from_file / 5
 
 # test gate from file
 x <- [Tstart = end_time()] 2 * gate_from_file / 5
-
-x <- join_exp(-10,0,1)
